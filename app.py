@@ -132,7 +132,7 @@ if page == "Resident Feedback":
         "and are visible on the public manager dashboard."
     )
 
-    with st.form("feedback_form", clear_on_submit=True):
+    with st.form("feedback_form", clear_on_submit=False):
 
         rating_choice = st.selectbox(
             "Star rating",
@@ -162,6 +162,7 @@ if page == "Resident Feedback":
             width="stretch"
         )
 
+
     if submitted:
 
         rating = (
@@ -175,10 +176,12 @@ if page == "Resident Feedback":
             st.error(
                 "Please provide a rating, a comment, or both."
             )
+
         else:
             topic = None
             error = None
             reasons = []
+            classification_ok = True
 
             if comment:
                 try:
@@ -186,45 +189,65 @@ if page == "Resident Feedback":
                 except Exception:
                     api_key = ""
 
-                with st.spinner("Classifying your feedback..."):
-                    topic, error = classify_comment(
-                        comment, api_key
+                if not api_key:
+                    classification_ok = False
+                else:
+                    with st.spinner("Classifying your feedback..."):
+                        topic, error = classify_comment(
+                            comment, api_key
+                        )
+
+                        # Retry once if classification fails.
+                        if error or topic not in LABELS:
+                            topic, error = classify_comment(
+                                comment, api_key
+                            )
+
+                    classification_ok = (
+                        error is None and topic in LABELS
                     )
 
-                reasons = review_reasons(
-                    comment, rating, topic, error
-                )
+                if classification_ok:
+                    reasons = review_reasons(
+                        comment, rating, topic
+                    )
 
-            try:
-                save_feedback(
-                    rating, comment, topic, error, reasons
-                )
-
-            except sqlite3.Error:
+            if not classification_ok:
                 st.error(
-                    "The feedback could not be saved. "
+                    "We couldn't classify your comment right now. "
+                    "Your feedback has not been saved. "
                     "Please try again."
                 )
 
             else:
-                st.success("Thank you! Your feedback was saved.")
-
-                if comment and topic in LABELS:
-                    st.write(f"**Assigned topic:** {topic}")
-
-                elif comment:
-                    st.warning(
-                        "The comment was saved, but automatic "
-                        "classification was unavailable. "
-                        "It has been flagged for review."
+                try:
+                    save_feedback(
+                        rating, comment, topic, None, reasons
                     )
 
-                if reasons:
-                    st.caption(
-                        "This feedback matched an automatic "
-                        "manual-review rule. It does not "
-                        "trigger an emergency response."
+                except sqlite3.Error:
+                    st.error(
+                        "The feedback could not be saved. "
+                        "Please try again."
                     )
+
+                else:
+                    st.success(
+                        "Thank you! Your feedback was saved."
+                    )
+
+                    if comment:
+                        st.write(
+                            f"**Assigned topic:** {topic}"
+                        )
+
+                    if reasons:
+                        st.caption(
+                            "This feedback matched an automatic "
+                            "manual-review rule. It does not "
+                            "trigger an emergency response."
+                        )
+
 
     with st.expander("How does classification work?"):
         st.write(

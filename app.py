@@ -12,7 +12,7 @@ from demo_data import seed_demo_data
 
 st.set_page_config(
     page_title="HomePulse AI",
-    page_icon="🏠",
+    page_icon="ጥ",
     layout="wide"
 )
 
@@ -64,7 +64,7 @@ def initialize_database():
 def save_feedback(rating, comment, topic, error, reasons):
     with connect() as connection:
         connection.execute("""
-            INSERT INTO feedback (
+            INSERT INTO feedback ( 
                 timestamp, rating, comment, topic,
                 classification_error, needs_review,
                 review_reason, is_demo
@@ -90,7 +90,7 @@ def load_feedback():
 
 initialize_database()
 
-st.sidebar.title("🏠 HomePulse AI")
+st.sidebar.title("ጥ HomePulse AI")
 st.sidebar.caption("Apartment Resident Feedback Analyzer")
 
 page = st.sidebar.radio(
@@ -111,7 +111,7 @@ st.sidebar.caption(
 
 if page == "Resident Feedback":
 
-    st.title("🏠 HomePulse AI")
+    st.title("ጥ HomePulse AI")
     st.subheader("Better living starts with your feedback")
 
     st.write(
@@ -138,11 +138,11 @@ if page == "Resident Feedback":
             "Star rating",
             [
                 "No rating",
-                "1 ⭐",
-                "2 ⭐⭐",
-                "3 ⭐⭐⭐",
-                "4 ⭐⭐⭐⭐",
-                "5 ⭐⭐⭐⭐⭐",
+                "1 └",
+                "2 └└",
+                "3 └└└",
+                "4 └└└└",
+                "5 └└└└└",
             ]
         )
 
@@ -217,7 +217,7 @@ if page == "Resident Feedback":
                     "We couldn't classify your comment right now. "
                     "Your feedback has not been saved. "
                     "Please try again."
-                )
+                ) 
 
             else:
                 try:
@@ -266,7 +266,7 @@ if page == "Resident Feedback":
 
 else:
 
-    st.title("📊 Manager Dashboard")
+    st.title("ቒ Manager Dashboard")
     st.write(f"**Business question:** {QUESTION}")
 
     st.info(
@@ -286,7 +286,7 @@ else:
     visitor_count = len(df) - demo_count
 
     st.caption(
-        f"{demo_count} fictional sample records · "
+        f"{demo_count} fictional sample records • "
         f"{visitor_count} visitor test submissions"
     )
 
@@ -452,10 +452,10 @@ else:
             with st.container(border=True):
                 st.write(
                     f"**Feedback #{int(item['id'])}** "
-                    f"· {topic} · {rating}"
+                    f"• {topic} • {rating}"
                 )
-                st.caption(
-                    f"{source} · {item['timestamp']}"
+                st.caption( 
+                    f"{source} • {item['timestamp']}"
                 )
                 st.write("**Full comment:**")
                 st.text(item["comment"])
@@ -471,10 +471,10 @@ else:
     export_df = df.copy()
 
     export_df["comment"] = export_df["comment"].apply(
-    lambda s: "'" + s
-    if isinstance(s, str) and s and s[0] in "=+-@"
-    else s
-)
+        lambda s: "'" + s
+        if isinstance(s, str) and s and s[0] in "=+-@"
+        else s
+    )
 
     st.download_button(
         "Download CSV",
@@ -486,9 +486,11 @@ else:
 
     with st.expander("Methodology and limitations"):
         st.write(
-            "**Classification:** One of six topics is assigned "
-            "to a written comment when the LLM succeeds. "
-            "Failed classifications are flagged, not guessed."
+            "**Classification:** Each saved written comment receives "
+            "exactly one of six predefined topic labels. "
+            "If classification fails after a retry, the submission "
+            "is not saved and the resident is asked to try again. "
+            "Rating-only submissions do not require a topic label."
         )
         st.write(
             "**Manual review:** Transparent keyword and pattern "

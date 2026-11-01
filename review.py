@@ -141,7 +141,8 @@ def review_reasons(comment, rating, label, error=None):
         tone = simple_tone(comment)
 
         if tone == "positive" and rating <= 2:
-            reasons.append("Positive wording conflicts with low rating")
+            reasons.append("Possible rating mismatch — check whether the low rating was intentional")
+
         elif tone == "negative" and rating == 5:
             reasons.append("Negative wording conflicts with high rating")
 

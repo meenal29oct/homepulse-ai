@@ -113,7 +113,14 @@ def simple_tone(comment):
     return "unknown"
 
 
-def review_reasons(comment, rating, label, error=None):
+def review_reasons(
+    comment,
+    rating,
+    label,
+    error=None,
+    ai_needs_review=False,
+    ai_review_reason=""
+):
     if not isinstance(comment, str) or not comment.strip():
         return []
 
@@ -172,4 +179,23 @@ def review_reasons(comment, rating, label, error=None):
         elif tone == "negative" and rating == 5:
             reasons.append("Negative wording conflicts with high rating")
 
-    return reasons
+        
+        
+        
+        
+        if ai_needs_review:
+             reasons.append(
+            "AI review: " +
+            (
+                ai_review_reason.strip()
+                if isinstance(ai_review_reason, str)
+                and ai_review_reason.strip()
+                else "AI identified a concern"
+            )
+        )
+
+    return list(dict.fromkeys(reasons))
+
+
+
+

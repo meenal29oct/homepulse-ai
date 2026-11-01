@@ -5,7 +5,7 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
-from labeler import LABELS, LABEL_DEFINITIONS, classify_comment
+from labeler import LABELS, LABEL_DEFINITIONS, analyze_comment
 from review import review_reasons
 from demo_data import seed_demo_data
 
@@ -182,6 +182,8 @@ if page == "Resident Feedback":
             error = None
             reasons = []
             classification_ok = True
+            ai_needs_review = False
+            ai_review_reason = ""
             api_key = ""
 
             if comment:
@@ -193,27 +195,35 @@ if page == "Resident Feedback":
                 if not api_key:
                     classification_ok = False
                 else:
-                    with st.spinner("Classifying your feedback..."):
-                        topic, error = classify_comment(
-                            comment, api_key
-                        )
+                     with st.spinner("Analyzing your feedback..."):
+                        (
+                            topic,
+                            ai_needs_review,
+                            ai_review_reason,
+                            error
+                        ) = analyze_comment(comment, api_key)
 
-                        # Retry once if classification fails.
-                        # Do not retry immediately when Groq is rate-limiting.
                         if (error or topic not in LABELS) and not (
                             error and "RateLimitError" in error
                         ):
-                            topic, error = classify_comment(
-                                comment, api_key
-                            )
+                            (
+                                topic,
+                                ai_needs_review,
+                                ai_review_reason,
+                                error
+                            ) = analyze_comment(comment, api_key)
 
-                    classification_ok = (
+                     classification_ok = (
                         error is None and topic in LABELS
                     )
 
                 if classification_ok:
                     reasons = review_reasons(
-                        comment, rating, topic
+                        comment,
+                        rating,
+                        topic,
+                        ai_needs_review=ai_needs_review,
+                        ai_review_reason=ai_review_reason
                     )
 
             if not classification_ok:

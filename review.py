@@ -138,6 +138,31 @@ def review_reasons(comment, rating, label, error=None):
     if matches(text, ACCESSIBILITY_AND_HARASSMENT):
         reasons.append("Potential harassment or accessibility concern")
 
+    # Strong dissatisfaction that warrants a closer look.
+    STRONG_DISSATISFACTION = [
+        r"\bworst\b",
+        r"\bpathetic\b",
+        r"\bdisgusting\b",
+        r"\b(?:completely|totally)\s+(?:useless|unacceptable)\b",
+        r"\b(?:regret|hate)\s+(?:living|moving|staying)\b",
+        r"\b(?:never|wouldn't|would not)\s+recommend\b",
+        r"\b(?:extremely|absolutely)\s+(?:terrible|awful|horrible)\b",
+    ]
+
+    PROFANITY = [
+        r"\bfuck(?:ing|ed|er|s)?\b",
+        r"\bshit(?:ty)?\b",
+        r"\bbullshit\b",
+        r"\b(?:damn|crap)\b",
+    ]
+
+    if matches(text, STRONG_DISSATISFACTION):
+        reasons.append("Strong resident dissatisfaction")
+
+    if matches(text, PROFANITY):
+        reasons.append("Profanity or abusive language")
+
+
     if rating is not None:
         tone = simple_tone(comment)
 

@@ -129,30 +129,23 @@ if page == "Resident Feedback":
         "flagged for review."
     )
 
-    with st.expander("Not sure what to write? Try an example"):
-        st.write(
-            "Use fictional feedback, in any language. Examples:"
-        )
-        st.markdown(
-            "- *The laundry room is clean, but two machines are broken.*\n"
-            "- *The neighbors play loud music after midnight.*\n"
-            "- *The leasing office has ignored my emails for a week.*\n"
-            "- *I love the pool and the quiet courtyard.*"
-        )
-        st.caption(
-            "A star rating on its own is fine too. Rating-only "
-            "feedback counts toward the average rating but has no topic."
-        )
+   
+    st.caption(
+        "Please submit fictional feedback only. "
+        "Comments in any language are welcome. "
+        "You may also submit a star rating without a comment."
+    )
 
-        st.warning(
+    st.warning(
         "**Public demo. Use fictional feedback only.** No names, "
         "apartment numbers, addresses, or phone numbers. Comments "
         "are sent to Groq and are visible on the public dashboard. "
         "This is not an emergency service. For fire, gas leaks, or "
         "immediate danger, call 911."
-        )
+    )
 
-    with st.form("feedback_form", clear_on_submit=True):
+
+    with st.form("feedback_form", clear_on_submit=False):
 
         rating_choice = st.selectbox(
             "Star rating",
@@ -246,20 +239,30 @@ if page == "Resident Feedback":
                         ai_review_reason=ai_review_reason
                     )
 
+            
             if not classification_ok:
-                st.error(
-                    "We couldn't classify your comment. "
-                    "Your feedback has not been saved."
-                )
-                if not api_key:
-                    st.warning(
-                        "Groq API key is missing. "
-                        "Check GROQ_API_KEY in Streamlit Secrets."
+                if error and "RateLimitError" in error:
+                    st.error(
+                        "The AI service is temporarily busy or has "
+                        "reached its usage limit. Your feedback has "
+                        "not been saved. Please try again later."
                     )
-                elif error:
-                    st.warning(f"Classification error: {error}")
                 else:
-                    st.warning("Groq did not return a valid topic.")
+                    st.error(
+                        "We couldn't classify your comment. "
+                        "Your feedback has not been saved."
+                    )
+
+                    if not api_key:
+                        st.warning(
+                            "Groq API key is missing. "
+                            "Check GROQ_API_KEY in Streamlit Secrets."
+                        )
+                    elif error:
+                        st.warning(f"Classification error: {error}")
+                    else:
+                        st.warning("Groq did not return a valid topic.")
+
             else:
                 try:
                     save_feedback(

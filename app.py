@@ -132,7 +132,7 @@ if page == "Resident Feedback":
         "and are visible on the public manager dashboard."
     )
 
-    with st.form("feedback_form", clear_on_submit=False):
+    with st.form("feedback_form", clear_on_submit=True):
 
         
         rating_choice = st.selectbox(

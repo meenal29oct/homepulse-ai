@@ -64,7 +64,7 @@ def initialize_database():
 def save_feedback(rating, comment, topic, error, reasons):
     with connect() as connection:
         connection.execute("""
-            INSERT INTO feedback ( 
+            INSERT INTO feedback (
                 timestamp, rating, comment, topic,
                 classification_error, needs_review,
                 review_reason, is_demo
@@ -129,7 +129,7 @@ if page == "Resident Feedback":
         "flagged for review."
     )
 
-   
+
     st.caption(
         "Please submit fictional feedback only. "
         "Comments in any language are welcome. "
@@ -239,7 +239,7 @@ if page == "Resident Feedback":
                         ai_review_reason=ai_review_reason
                     )
 
-            
+
             if not classification_ok:
                 if error and "RateLimitError" in error:
                     st.error(
@@ -293,7 +293,7 @@ if page == "Resident Feedback":
                         )
 
 
-    
+
     with st.expander("How does classification work?"):
         st.write(
             "Groq assigns one topic and suggests whether "
@@ -368,14 +368,14 @@ else:
         f"{rating_only_count} contain only a star rating. "
         "Rating-only submissions contribute to the total feedback "
         "count and overall average rating, but are excluded "
-        "from topic charts because they have no written comment."
+        "from area-based charts because they have no written comment."
     )
 
     st.divider()
 
 
     # Chart 1
-    st.subheader("1. Which topics are mentioned most?")
+    st.subheader("1. Which areas receive the most feedback?")
 
     labeled = df[df["topic"].isin(LABELS)].copy()
 
@@ -394,21 +394,21 @@ else:
         )
 
     st.caption(
-        "Topic counts include both praise and complaints. "
+        "Feedback counts include both praise and complaints. "
         "They do not measure the number of problems. "
         "Rating-only and unclassified submissions "
         "are excluded."
     )
 
     # Chart 2
-    st.subheader("2. Which topics receive lower star ratings?")
+    st.subheader("2. Which areas receive lower star ratings?")
 
     rated_comments = labeled.dropna(subset=["rating"])
 
     if rated_comments.empty:
         st.info(
             "No comments currently have both "
-            "a topic and a rating."
+            "a classified area and a rating."
         )
     else:
         grouped = (
@@ -441,20 +441,20 @@ else:
 
             st.info(
                 f"**Area to examine:** {lowest} has the lowest "
-                f"average rating among topics with at least "
+                f"average rating among areas with at least "
                 f"three rated comments ({mean:.2f}/5; n={n}). "
                 "This is an exploratory signal, not proof "
                 "of a service problem."
             )
         else:
             st.caption(
-                "There are too few rated comments per topic "
+                "There are too few rated comments per area "
                 "to identify a meaningful lowest-rated area."
             )
 
     st.caption(
         "Ratings without comments contribute to the overall "
-        "average, but cannot be assigned to a topic. "
+        "average, but cannot be assigned to an area."
         "Fictional sample records are included in these charts."
     )
 
@@ -507,7 +507,7 @@ else:
                 else "No rating"
             )
 
-            
+
             source = (
                 "Fictional sample"
                 if int(item["is_demo"]) == 1
@@ -563,14 +563,14 @@ else:
             "is not saved and the resident is asked to try again. "
             "Rating-only submissions do not require a topic label."
         )
-       
+
         st.write(
             "**Manual review:** AI-based screening and keyword "
             "or pattern rules identify comments that may need "
             "human attention. Both approaches can make mistakes "
             "and may miss concerns or incorrectly flag comments."
         )
-        
+
         st.write(
             "**Interpretation:** High topic volume does not "
             "necessarily mean poor service. Average ratings "

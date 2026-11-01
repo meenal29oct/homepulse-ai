@@ -131,7 +131,7 @@ def review_reasons(
         reasons.append("Classification failed or invalid")
 
     simplified = re.sub(r"[^a-z0-9 ]", "", text).strip()
-    
+
     if simplified in VAGUE or not re.search(r"[^\W\d_]", text):
         reasons.append("Vague feedback")
 
@@ -180,7 +180,7 @@ def review_reasons(
         reasons.append("Profanity or abusive language")
 
 
-    
+
     if rating is not None:
         tone = simple_tone(comment)
 

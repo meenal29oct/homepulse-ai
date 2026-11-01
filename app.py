@@ -134,19 +134,17 @@ if page == "Resident Feedback":
 
     with st.form("feedback_form", clear_on_submit=True):
 
-        
         rating_choice = st.selectbox(
-    "Star rating",
-    [
-        "No rating",
-        "1 ⭐",
-        "2 ⭐⭐",
-        "3 ⭐⭐⭐",
-        "4 ⭐⭐⭐⭐",
-        "5 ⭐⭐⭐⭐⭐",
-    ]
-)
-
+            "Star rating",
+            [
+                "No rating",
+                "1 ⭐",
+                "2 ⭐⭐",
+                "3 ⭐⭐⭐",
+                "4 ⭐⭐⭐⭐",
+                "5 ⭐⭐⭐⭐⭐",
+            ]
+        )
 
         comment = st.text_area(
             "Written feedback",
@@ -184,6 +182,7 @@ if page == "Resident Feedback":
             error = None
             reasons = []
             classification_ok = True
+            api_key = ""
 
             if comment:
                 try:
@@ -200,7 +199,10 @@ if page == "Resident Feedback":
                         )
 
                         # Retry once if classification fails.
-                        if error or topic not in LABELS:
+                        # Do not retry immediately when Groq is rate-limiting.
+                        if (error or topic not in LABELS) and not (
+                            error and "RateLimitError" in error
+                        ):
                             topic, error = classify_comment(
                                 comment, api_key
                             )
@@ -216,23 +218,28 @@ if page == "Resident Feedback":
 
             if not classification_ok:
                 st.error(
-                    "We couldn't classify your comment right now. "
-                    "Your feedback has not been saved. "
-                    "Please try again."
-                ) 
-
+                    "We couldn't classify your comment. "
+                    "Your feedback has not been saved."
+                )
+                if not api_key:
+                    st.warning(
+                        "Groq API key is missing. "
+                        "Check GROQ_API_KEY in Streamlit Secrets."
+                    )
+                elif error:
+                    st.warning(f"Classification error: {error}")
+                else:
+                    st.warning("Groq did not return a valid topic.")
             else:
                 try:
                     save_feedback(
                         rating, comment, topic, None, reasons
                     )
-
                 except sqlite3.Error:
                     st.error(
                         "The feedback could not be saved. "
                         "Please try again."
                     )
-
                 else:
                     st.success(
                         "Thank you! Your feedback was saved."
@@ -303,25 +310,25 @@ else:
 
     k1, k2, k3 = st.columns(3)
 
-    
+
     k1.metric("Feedback received", total)
     k2.metric(
-    "Average rating",
-    f"{average:.2f} / 5" if average is not None else "N/A"
-)
+        "Average rating",
+        f"{average:.2f} / 5" if average is not None else "N/A"
+    )
     k3.metric("Needs manual review", review_count)
 
     rating_only_count = int(
-    (df["rating"].notna() & df["comment"].isna()).sum()
-)
+        (df["rating"].notna() & df["comment"].isna()).sum()
+    )
 
     st.caption(
-    f"Of {total} feedback submissions, "
-    f"{rating_only_count} contain only a star rating. "
-    "Rating-only submissions contribute to the total feedback "
-    "count and overall average rating, but are excluded "
-    "from topic charts because they have no written comment."
-)
+        f"Of {total} feedback submissions, "
+        f"{rating_only_count} contain only a star rating. "
+        "Rating-only submissions contribute to the total feedback "
+        "count and overall average rating, but are excluded "
+        "from topic charts because they have no written comment."
+    )
 
     st.divider()
 
@@ -470,7 +477,7 @@ else:
                     f"**Feedback #{int(item['id'])}** "
                     f"• {topic} • {rating}"
                 )
-                st.caption( 
+                st.caption(
                     f"{source} • {item['timestamp']}"
                 )
                 st.write("**Full comment:**")

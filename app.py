@@ -532,12 +532,14 @@ else:
             "is not saved and the resident is asked to try again. "
             "Rating-only submissions do not require a topic label."
         )
+       
         st.write(
-            "**Manual review:** Transparent keyword and pattern "
-            "rules identify selected concerns. They may miss "
-            "hazards or incorrectly flag sarcasm, negation, "
-            "and mixed sentiment."
+            "**Manual review:** AI-based screening and keyword "
+            "or pattern rules identify comments that may need "
+            "human attention. Both approaches can make mistakes "
+            "and may miss concerns or incorrectly flag comments."
         )
+        
         st.write(
             "**Interpretation:** High topic volume does not "
             "necessarily mean poor service. Average ratings "

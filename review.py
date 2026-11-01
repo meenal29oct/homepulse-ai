@@ -170,23 +170,23 @@ def review_reasons(
         reasons.append("Profanity or abusive language")
 
 
+    
     if rating is not None:
         tone = simple_tone(comment)
 
         if tone == "positive" and rating <= 2:
-            reasons.append("Possible rating mismatch — check whether the low rating was intentional")
+            reasons.append(
+                "Possible rating mismatch — check whether the low rating was intentional"
+            )
 
         elif tone == "negative" and rating == 5:
-            reasons.append("Negative wording conflicts with high rating")
+            reasons.append(
+                "Negative wording conflicts with high rating"
+            )
 
-        
-        
-        
-        
-        if ai_needs_review:
-             reasons.append(
-            "AI review: " +
-            (
+    if ai_needs_review:
+        reasons.append(
+            "AI review: " + (
                 ai_review_reason.strip()
                 if isinstance(ai_review_reason, str)
                 and ai_review_reason.strip()

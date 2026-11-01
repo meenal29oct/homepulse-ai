@@ -153,7 +153,7 @@ if page == "Resident Feedback":
                 "but the machines are often unavailable."
             ),
             height=140,
-            max_chars=1500
+            max_chars=5000,
         )
 
         submitted = st.form_submit_button(
@@ -476,6 +476,7 @@ else:
                 else "No rating"
             )
 
+            
             source = (
                 "Fictional sample"
                 if int(item["is_demo"]) == 1
@@ -483,19 +484,25 @@ else:
             )
 
             with st.container(border=True):
+                st.write("**Resident comment:**")
+                st.write(item["comment"])
+
                 st.write(
-                    f"**Feedback #{int(item['id'])}** "
-                    f"• {topic} • {rating}"
+                    f"**Topic:** {topic} | **Rating:** {rating}"
                 )
-                st.caption(
-                    f"{source} • {item['timestamp']}"
-                )
-                st.write("**Full comment:**")
-                st.text(item["comment"])
+
                 st.warning(
-                    "Review reason: "
+                    "Needs manager review — "
                     + str(item["review_reason"])
                 )
+
+                st.caption(
+                    f"{source} • "
+                    + datetime.fromisoformat(
+                        item["timestamp"]
+                    ).strftime("%b %d, %Y at %I:%M %p UTC")
+                )
+
 
     st.divider()
 

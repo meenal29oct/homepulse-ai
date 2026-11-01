@@ -303,14 +303,28 @@ else:
 
     k1, k2, k3 = st.columns(3)
 
+    
     k1.metric("Feedback received", total)
     k2.metric(
-        "Average rating",
-        f"{average:.2f} / 5" if average is not None else "N/A"
-    )
+    "Average rating",
+    f"{average:.2f} / 5" if average is not None else "N/A"
+)
     k3.metric("Needs manual review", review_count)
 
+    rating_only_count = int(
+    (df["rating"].notna() & df["comment"].isna()).sum()
+)
+
+    st.caption(
+    f"Of {total} feedback submissions, "
+    f"{rating_only_count} contain only a star rating. "
+    "Rating-only submissions contribute to the total feedback "
+    "count and overall average rating, but are excluded "
+    "from topic charts because they have no written comment."
+)
+
     st.divider()
+
 
     # Chart 1
     st.subheader("1. Which topics are mentioned most?")

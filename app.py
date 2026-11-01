@@ -1,0 +1,492 @@
+import sqlite3
+from datetime import datetime, timezone
+from pathlib import Path
+
+import pandas as pd
+import streamlit as st
+
+from labeler import LABELS, LABEL_DEFINITIONS, classify_comment
+from review import review_reasons
+from demo_data import seed_demo_data
+
+
+st.set_page_config(
+    page_title="HomePulse AI",
+    page_icon="🏠",
+    layout="wide"
+)
+
+QUESTION = (
+    "Which parts of apartment living need management's "
+    "attention, and which comments need a person to read them?"
+)
+
+DB_PATH = Path("homepulse_feedback.db")
+
+
+def connect():
+    connection = sqlite3.connect(DB_PATH, timeout=15)
+    connection.execute("PRAGMA busy_timeout=15000")
+    return connection
+
+
+def initialize_database():
+    with connect() as connection:
+        connection.execute("""
+            CREATE TABLE IF NOT EXISTS feedback (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp TEXT NOT NULL,
+                rating INTEGER,
+                comment TEXT,
+                topic TEXT,
+                classification_error TEXT,
+                needs_review INTEGER NOT NULL DEFAULT 0,
+                review_reason TEXT,
+                is_demo INTEGER NOT NULL DEFAULT 0
+            )
+        """)
+
+        columns = {
+            row[1] for row in connection.execute(
+                "PRAGMA table_info(feedback)"
+            )
+        }
+
+        if "is_demo" not in columns:
+            connection.execute(
+                "ALTER TABLE feedback ADD COLUMN "
+                "is_demo INTEGER NOT NULL DEFAULT 0"
+            )
+
+        seed_demo_data(connection)
+
+
+def save_feedback(rating, comment, topic, error, reasons):
+    with connect() as connection:
+        connection.execute("""
+            INSERT INTO feedback (
+                timestamp, rating, comment, topic,
+                classification_error, needs_review,
+                review_reason, is_demo
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, 0)
+        """, (
+            datetime.now(timezone.utc).isoformat(),
+            rating,
+            comment or None,
+            topic,
+            error,
+            int(bool(reasons)),
+            "; ".join(reasons),
+        ))
+
+
+def load_feedback():
+    with connect() as connection:
+        return pd.read_sql_query(
+            "SELECT * FROM feedback ORDER BY id DESC",
+            connection
+        )
+
+
+initialize_database()
+
+st.sidebar.title("🏠 HomePulse AI")
+st.sidebar.caption("Apartment Resident Feedback Analyzer")
+
+page = st.sidebar.radio(
+    "Navigation",
+    ["Resident Feedback", "Manager Dashboard"]
+)
+
+st.sidebar.divider()
+st.sidebar.caption(
+    "Public classroom demonstration. "
+    "Use fictional feedback only."
+)
+
+
+# =========================================
+# RESIDENT PAGE
+# =========================================
+
+if page == "Resident Feedback":
+
+    st.title("🏠 HomePulse AI")
+    st.subheader("Better living starts with your feedback")
+
+    st.write(
+        "Share a star rating, a written comment, or both. "
+        "At least one is required."
+    )
+
+    st.warning(
+        "This is not an emergency-reporting service. "
+        "For fire, gas leaks, or immediate danger, call 911."
+    )
+
+    st.info(
+        "This is a public educational demo. Enter fictional "
+        "feedback only. Do not include names, apartment numbers, "
+        "addresses, phone numbers, or sensitive information. "
+        "Written comments are sent to Groq for classification "
+        "and are visible on the public manager dashboard."
+    )
+
+    with st.form("feedback_form", clear_on_submit=True):
+
+        rating_choice = st.selectbox(
+            "Star rating",
+            [
+                "No rating",
+                "1 ⭐",
+                "2 ⭐⭐",
+                "3 ⭐⭐⭐",
+                "4 ⭐⭐⭐⭐",
+                "5 ⭐⭐⭐⭐⭐",
+            ]
+        )
+
+        comment = st.text_area(
+            "Written feedback",
+            placeholder=(
+                "Example: The laundry room is clean, "
+                "but the machines are often unavailable."
+            ),
+            height=140,
+            max_chars=1500
+        )
+
+        submitted = st.form_submit_button(
+            "Submit feedback",
+            type="primary",
+            width="stretch"
+        )
+
+    if submitted:
+
+        rating = (
+            None if rating_choice == "No rating"
+            else int(rating_choice[0])
+        )
+
+        comment = comment.strip()
+
+        if rating is None and not comment:
+            st.error(
+                "Please provide a rating, a comment, or both."
+            )
+        else:
+            topic = None
+            error = None
+            reasons = []
+
+            if comment:
+                try:
+                    api_key = st.secrets.get("GROQ_API_KEY", "")
+                except Exception:
+                    api_key = ""
+
+                with st.spinner("Classifying your feedback..."):
+                    topic, error = classify_comment(
+                        comment, api_key
+                    )
+
+                reasons = review_reasons(
+                    comment, rating, topic, error
+                )
+
+            try:
+                save_feedback(
+                    rating, comment, topic, error, reasons
+                )
+
+            except sqlite3.Error:
+                st.error(
+                    "The feedback could not be saved. "
+                    "Please try again."
+                )
+
+            else:
+                st.success("Thank you! Your feedback was saved.")
+
+                if comment and topic in LABELS:
+                    st.write(f"**Assigned topic:** {topic}")
+
+                elif comment:
+                    st.warning(
+                        "The comment was saved, but automatic "
+                        "classification was unavailable. "
+                        "It has been flagged for review."
+                    )
+
+                if reasons:
+                    st.caption(
+                        "This feedback matched an automatic "
+                        "manual-review rule. It does not "
+                        "trigger an emergency response."
+                    )
+
+    with st.expander("How does classification work?"):
+        st.write(
+            "Groq assigns one topic to each successfully "
+            "classified written comment. The manual-review "
+            "screening is separate from the topic label."
+        )
+
+        for label, definition in LABEL_DEFINITIONS.items():
+            st.write(f"**{label}:** {definition}")
+
+
+# =========================================
+# MANAGER DASHBOARD
+# =========================================
+
+else:
+
+    st.title("📊 Manager Dashboard")
+    st.write(f"**Business question:** {QUESTION}")
+
+    st.info(
+        "This dashboard includes fictional, pre-labeled sample "
+        "records and public visitor test submissions. "
+        "Sample records are not live LLM predictions. "
+        "The figures do not represent real apartment performance."
+    )
+
+    df = load_feedback()
+
+    if df.empty:
+        st.info("No feedback is available.")
+        st.stop()
+
+    demo_count = int(df["is_demo"].sum())
+    visitor_count = len(df) - demo_count
+
+    st.caption(
+        f"{demo_count} fictional sample records · "
+        f"{visitor_count} visitor test submissions"
+    )
+
+    # Three required KPIs
+    total = len(df)
+    rated = df.dropna(subset=["rating"])
+    average = (
+        rated["rating"].mean()
+        if not rated.empty else None
+    )
+    review_count = int(df["needs_review"].sum())
+
+    k1, k2, k3 = st.columns(3)
+
+    k1.metric("Feedback received", total)
+    k2.metric(
+        "Average rating",
+        f"{average:.2f} / 5" if average is not None else "N/A"
+    )
+    k3.metric("Needs manual review", review_count)
+
+    st.divider()
+
+    # Chart 1
+    st.subheader("1. Which topics are mentioned most?")
+
+    labeled = df[df["topic"].isin(LABELS)].copy()
+
+    if labeled.empty:
+        st.info("No classified comments available.")
+    else:
+        counts = (
+            labeled["topic"]
+            .value_counts()
+            .reindex(LABELS, fill_value=0)
+        )
+
+        st.bar_chart(
+            counts.rename("Comments"),
+            horizontal=True
+        )
+
+    st.caption(
+        "Topic counts include both praise and complaints. "
+        "They do not measure the number of problems. "
+        "Rating-only and unclassified submissions "
+        "are excluded."
+    )
+
+    # Chart 2
+    st.subheader("2. Which topics receive lower star ratings?")
+
+    rated_comments = labeled.dropna(subset=["rating"])
+
+    if rated_comments.empty:
+        st.info(
+            "No comments currently have both "
+            "a topic and a rating."
+        )
+    else:
+        grouped = (
+            rated_comments.groupby("topic")["rating"]
+            .agg(["mean", "count"])
+            .reindex(LABELS)
+            .dropna(subset=["mean"])
+        )
+
+        st.bar_chart(
+            grouped["mean"].rename("Average stars"),
+            horizontal=True
+        )
+
+        with st.expander("View average ratings and sample sizes"):
+            st.dataframe(
+                grouped.rename(columns={
+                    "mean": "Average stars",
+                    "count": "Rated comments"
+                }),
+                width="stretch"
+            )
+
+        eligible = grouped[grouped["count"] >= 3]
+
+        if not eligible.empty:
+            lowest = eligible["mean"].idxmin()
+            mean = float(eligible.loc[lowest, "mean"])
+            n = int(eligible.loc[lowest, "count"])
+
+            st.info(
+                f"**Area to examine:** {lowest} has the lowest "
+                f"average rating among topics with at least "
+                f"three rated comments ({mean:.2f}/5; n={n}). "
+                "This is an exploratory signal, not proof "
+                "of a service problem."
+            )
+        else:
+            st.caption(
+                "There are too few rated comments per topic "
+                "to identify a meaningful lowest-rated area."
+            )
+
+    st.caption(
+        "Ratings without comments contribute to the overall "
+        "average, but cannot be assigned to a topic. "
+        "Fictional sample records are included in these charts."
+    )
+
+    st.divider()
+
+    # Full flagged comments
+    st.subheader("3. Comments needing manual review")
+
+    flagged = df[
+        (df["needs_review"] == 1)
+        & df["comment"].notna()
+    ].copy()
+
+    if flagged.empty:
+        st.success(
+            "No comments currently match the screening rules."
+        )
+    else:
+        st.write(f"**{len(flagged)} comments flagged.**")
+
+        available_reasons = sorted({
+            reason.strip()
+            for value in flagged["review_reason"].fillna("")
+            for reason in value.split(";")
+            if reason.strip()
+        })
+
+        reason_filter = st.selectbox(
+            "Filter by review reason",
+            ["All reasons"] + available_reasons
+        )
+
+        if reason_filter != "All reasons":
+            flagged = flagged[
+                flagged["review_reason"]
+                .fillna("")
+                .str.contains(reason_filter, regex=False)
+            ]
+
+        for _, item in flagged.iterrows():
+            topic = (
+                item["topic"]
+                if pd.notna(item["topic"])
+                else "Unclassified"
+            )
+
+            rating = (
+                f'{int(item["rating"])} / 5'
+                if pd.notna(item["rating"])
+                else "No rating"
+            )
+
+            source = (
+                "Fictional sample"
+                if int(item["is_demo"]) == 1
+                else "Visitor test"
+            )
+
+            with st.container(border=True):
+                st.write(
+                    f"**Feedback #{int(item['id'])}** "
+                    f"· {topic} · {rating}"
+                )
+                st.caption(
+                    f"{source} · {item['timestamp']}"
+                )
+                st.write("**Full comment:**")
+                st.write(item["comment"])
+                st.warning(
+                    "Review reason: "
+                    + str(item["review_reason"])
+                )
+
+    st.divider()
+
+    st.subheader("Export classroom feedback data")
+
+   
+
+    st.download_button(
+        "Download CSV",
+        data=df.to_csv(index=False).encode("utf-8"),
+        file_name="homepulse_feedback.csv",
+        mime="text/csv",
+        width="stretch"
+    )
+
+    with st.expander("Methodology and limitations"):
+        st.write(
+            "**Classification:** One of six topics is assigned "
+            "to a written comment when the LLM succeeds. "
+            "Failed classifications are flagged, not guessed."
+        )
+        st.write(
+            "**Manual review:** Transparent keyword and pattern "
+            "rules identify selected concerns. They may miss "
+            "hazards or incorrectly flag sarcasm, negation, "
+            "and mixed sentiment."
+        )
+        st.write(
+            "**Interpretation:** High topic volume does not "
+            "necessarily mean poor service. Average ratings "
+            "are sensitive to small samples and selection bias."
+        )
+        st.write(
+            "**Data:** Fictional records are pre-labeled. "
+            "Visitor submissions are for demonstration only."
+        )
+        st.write(
+            "**Persistence:** SQLite files on Streamlit "
+            "Community Cloud are not durable storage. "
+            "Visitor submissions may disappear after a restart."
+        )
+        st.write(
+            "**Privacy:** This dashboard and CSV are public. "
+            "Only fictional, non-sensitive feedback should "
+            "be entered. Written comments are sent to Groq."
+        )
+        st.write(
+            "**Emergencies:** The app is not monitored "
+            "and must not be used to report emergencies."
+        )

@@ -1,0 +1,9 @@
+.streamlit/secrets.toml
+.env
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+__pycache__/
+.ipynb_checkpoints/
+.venv/

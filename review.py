@@ -166,6 +166,16 @@ def review_reasons(
     if matches(text, STRONG_DISSATISFACTION):
         reasons.append("Strong resident dissatisfaction")
 
+    UNRESOLVED_COMPLAINTS = [
+        r"\b(?:ignored|unanswered|unresolved)\b.{0,100}\b(?:complaints?|requests?|emails?)\b",
+        r"\b(?:complaints?|requests?|emails?)\b.{0,100}\b(?:ignored|unanswered|unresolved)\b",
+        r"\b(?:still|never)\s+(?:not fixed|broken|waiting)\b",
+    ]
+
+    if matches(text, UNRESOLVED_COMPLAINTS):
+        reasons.append("Repeated or unresolved resident complaint")
+
+
     if matches(text, PROFANITY):
         reasons.append("Profanity or abusive language")
 

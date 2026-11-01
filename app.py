@@ -12,7 +12,7 @@ from demo_data import seed_demo_data
 
 st.set_page_config(
     page_title="HomePulse AI",
-    page_icon="ጥ",
+    page_icon="🏠",
     layout="wide"
 )
 
@@ -90,7 +90,7 @@ def load_feedback():
 
 initialize_database()
 
-st.sidebar.title("ጥ HomePulse AI")
+st.sidebar.title("🏠 HomePulse AI")
 st.sidebar.caption("Apartment Resident Feedback Analyzer")
 
 page = st.sidebar.radio(
@@ -111,7 +111,7 @@ st.sidebar.caption(
 
 if page == "Resident Feedback":
 
-    st.title("ጥ HomePulse AI")
+    st.title("🏠 HomePulse AI")
     st.subheader("Better living starts with your feedback")
 
     st.write(
@@ -134,17 +134,19 @@ if page == "Resident Feedback":
 
     with st.form("feedback_form", clear_on_submit=False):
 
+        
         rating_choice = st.selectbox(
-            "Star rating",
-            [
-                "No rating",
-                "1 └",
-                "2 └└",
-                "3 └└└",
-                "4 └└└└",
-                "5 └└└└└",
-            ]
-        )
+    "Star rating",
+    [
+        "No rating",
+        "1 ⭐",
+        "2 ⭐⭐",
+        "3 ⭐⭐⭐",
+        "4 ⭐⭐⭐⭐",
+        "5 ⭐⭐⭐⭐⭐",
+    ]
+)
+
 
         comment = st.text_area(
             "Written feedback",
@@ -266,7 +268,7 @@ if page == "Resident Feedback":
 
 else:
 
-    st.title("ቒ Manager Dashboard")
+    st.title("📊 Manager Dashboard")
     st.write(f"**Business question:** {QUESTION}")
 
     st.info(

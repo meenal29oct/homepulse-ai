@@ -115,22 +115,42 @@ if page == "Resident Feedback":
     st.subheader("Better living starts with your feedback")
 
     st.write(
-        "Share a star rating, a written comment, or both. "
-        "At least one is required."
+        "Tell us about living at HomePulse. You can leave a star "
+        "rating, a written comment, or both. At least one is required."
     )
 
-    st.warning(
-        "This is not an emergency-reporting service. "
-        "For fire, gas leaks, or immediate danger, call 911."
+    st.markdown(
+        "**How it works**\n"
+        "1. Write a short comment about any part of apartment life, "
+        "such as repairs, noise, safety, staff, or shared spaces.\n"
+        "2. AI assigns your comment to one topic.\n"
+        "3. Managers see topic trends on the **Manager Dashboard**, "
+        "and comments that may need a person to read them are "
+        "flagged for review."
     )
 
-    st.info(
-        "This is a public educational demo. Enter fictional "
-        "feedback only. Do not include names, apartment numbers, "
-        "addresses, phone numbers, or sensitive information. "
-        "Written comments are sent to Groq for classification "
-        "and are visible on the public manager dashboard."
-    )
+    with st.expander("Not sure what to write? Try an example"):
+        st.write(
+            "Use fictional feedback, in any language. Examples:"
+        )
+        st.markdown(
+            "- *The laundry room is clean, but two machines are broken.*\n"
+            "- *The neighbors play loud music after midnight.*\n"
+            "- *The leasing office has ignored my emails for a week.*\n"
+            "- *I love the pool and the quiet courtyard.*"
+        )
+        st.caption(
+            "A star rating on its own is fine too. Rating-only "
+            "feedback counts toward the average rating but has no topic."
+        )
+
+        st.warning(
+        "**Public demo. Use fictional feedback only.** No names, "
+        "apartment numbers, addresses, or phone numbers. Comments "
+        "are sent to Groq and are visible on the public dashboard. "
+        "This is not an emergency service. For fire, gas leaks, or "
+        "immediate danger, call 911."
+        )
 
     with st.form("feedback_form", clear_on_submit=True):
 
@@ -252,7 +272,8 @@ if page == "Resident Feedback":
                     )
                 else:
                     st.success(
-                        "Thank you! Your feedback was saved."
+                        "Thank you! Your feedback was saved and "
+                        "now appears on the Manager Dashboard."
                     )
 
                     if comment:
@@ -262,9 +283,10 @@ if page == "Resident Feedback":
 
                     if reasons:
                         st.caption(
-                            "This feedback matched an automatic "
-                            "manual-review rule. It does not "
-                            "trigger an emergency response."
+                            "A manager will be asked to read this comment "
+                            "because it matched an automatic review "
+                            "check. This does not trigger an emergency "
+                            "response."
                         )
 
 
@@ -288,6 +310,11 @@ else:
 
     st.title("📊 Manager Dashboard")
     st.write(f"**Business question:** {QUESTION}")
+    st.caption(
+        "To test: submit feedback on the Resident Feedback page "
+        "(left sidebar), then return here. Counts, charts and the "
+        "review list update automatically."
+    )
 
     st.info(
         "This dashboard includes fictional, pre-labeled sample "
@@ -507,23 +534,23 @@ else:
 
     st.divider()
 
-    st.subheader("Export classroom feedback data")
+    with st.expander("Export classroom feedback data (CSV)"):
 
-    export_df = df.copy()
+        export_df = df.copy()
 
-    export_df["comment"] = export_df["comment"].apply(
-        lambda s: "'" + s
-        if isinstance(s, str) and s and s[0] in "=+-@"
-        else s
-    )
+        export_df["comment"] = export_df["comment"].apply(
+            lambda s: "'" + s
+            if isinstance(s, str) and s and s[0] in "=+-@"
+            else s
+        )
 
-    st.download_button(
-        "Download CSV",
-        data=export_df.to_csv(index=False).encode("utf-8"),
-        file_name="homepulse_feedback.csv",
-        mime="text/csv",
-        width="stretch"
-    )
+        st.download_button(
+            "Download CSV",
+            data=export_df.to_csv(index=False).encode("utf-8"),
+            file_name="homepulse_feedback.csv",
+            mime="text/csv",
+            width="stretch"
+        )
 
     with st.expander("Methodology and limitations"):
         st.write(

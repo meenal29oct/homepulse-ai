@@ -435,7 +435,7 @@ else:
                     f"{source} · {item['timestamp']}"
                 )
                 st.write("**Full comment:**")
-                st.write(item["comment"])
+                st.text(item["comment"])
                 st.warning(
                     "Review reason: "
                     + str(item["review_reason"])
@@ -445,11 +445,17 @@ else:
 
     st.subheader("Export classroom feedback data")
 
-   
+    export_df = df.copy()
+
+    export_df["comment"] = export_df["comment"].apply(
+    lambda s: "'" + s
+    if isinstance(s, str) and s and s[0] in "=+-@"
+    else s
+)
 
     st.download_button(
         "Download CSV",
-        data=df.to_csv(index=False).encode("utf-8"),
+        data=export_df.to_csv(index=False).encode("utf-8"),
         file_name="homepulse_feedback.csv",
         mime="text/csv",
         width="stretch"

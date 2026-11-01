@@ -64,7 +64,7 @@ HARMLESS_PHRASES = [
 ]
 
 POSITIVE = [
-    r"\b(?:love|excellent|wonderful|amazing|fantastic|great|perfect)\b",
+    r"\b(?:love|lovely|excellent|wonderful|amazing|fantastic|great|perfect|best|awesome|beautiful|outstanding)\b",
     r"\b(?:clean|quiet|friendly|helpful|responsive|comfortable)\b",
     r"\b(?:very happy|highly recommend|fixed quickly|works perfectly)\b",
 ]
@@ -124,7 +124,8 @@ def review_reasons(comment, rating, label, error=None):
         reasons.append("Classification failed or invalid")
 
     simplified = re.sub(r"[^a-z0-9 ]", "", text).strip()
-    if simplified in VAGUE:
+    
+    if simplified in VAGUE or not re.search(r"[^\W\d_]", text):
         reasons.append("Vague feedback")
 
     hazard_text = text

@@ -268,11 +268,12 @@ if page == "Resident Feedback":
                         )
 
 
+    
     with st.expander("How does classification work?"):
         st.write(
-            "Groq assigns one topic to each successfully "
-            "classified written comment. The manual-review "
-            "screening is separate from the topic label."
+            "Groq assigns one topic and suggests whether "
+            "a person should review the comment. "
+            "Keyword and pattern rules add further review flags."
         )
 
         for label, definition in LABEL_DEFINITIONS.items():
@@ -485,7 +486,7 @@ else:
 
             with st.container(border=True):
                 st.write("**Resident comment:**")
-                st.write(item["comment"])
+                st.text(item["comment"])
 
                 st.write(
                     f"**Topic:** {topic} | **Rating:** {rating}"
